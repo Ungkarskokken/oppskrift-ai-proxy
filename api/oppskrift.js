@@ -46,4 +46,5 @@ export default async function handler(req, res) {
     console.error("💥 Serverfeil:", error.message);
     res.status(500).json({ error: "Noe gikk galt på serveren 😢" });
   }
+  
 }
