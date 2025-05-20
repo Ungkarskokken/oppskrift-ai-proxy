@@ -1,4 +1,15 @@
 export default async function handler(req, res) {
+  // Tillat alle domener (eller sett spesifikt til 'https://www.ungkarskokken.com')
+  res.setHeader("Access-Control-Allow-Origin", "https://www.ungkarskokken.com");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    // Håndter "preflight"-request
+    res.status(200).end();
+    return;
+  }
+
   const { ingredients } = req.body;
 
   const prompt = `Lag en oppskrift basert på disse ingrediensene: ${ingredients}. Skriv som en norsk matblogger, med litt sjarm og humor.`;
