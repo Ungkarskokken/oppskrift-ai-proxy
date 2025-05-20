@@ -1,17 +1,27 @@
 export default async function handler(req, res) {
-  // CORS headers
+  // CORS headers – alltid først!
   res.setHeader("Access-Control-Allow-Origin", "https://www.ungkarskokken.com");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") {
-    // Preflight request
-    res.status(200).end();
+    res.status(200).end(); // Preflight check
     return;
   }
 
   try {
-    const { ingredients } = req.body;
+    // Trygg parsing av JSON-body
+    const body = req.body;
+
+    // Hvis body er tom (kommer som tekst), prøv å parse manuelt
+    const ingredients =
+      typeof body === "string"
+        ? JSON.parse(body).ingredients
+        : body.ingredients;
+
+    if (!ingredients) {
+      throw new Error("Ingen ingredienser mottatt.");
+    }
 
     const prompt = `Lag en oppskrift basert på disse ingrediensene: ${ingredients}. Skriv som en norsk matblogger, med litt sjarm og humor.`;
 
@@ -33,7 +43,7 @@ export default async function handler(req, res) {
 
     res.status(200).json(data.choices[0].message);
   } catch (error) {
-    console.error("Feil i oppskrifts-API:", error);
-    res.status(500).json({ error: "Noe gikk galt på kjøkkenet 😢" });
+    console.error("💥 Serverfeil:", error.message);
+    res.status(500).json({ error: "Noe gikk galt på serveren 😢" });
   }
 }
