@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-4",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 500,
+        max_tokens: 1000,
         temperature: 0.8,
       }),
     });
