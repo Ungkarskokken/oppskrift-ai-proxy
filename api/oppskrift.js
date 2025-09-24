@@ -18,10 +18,13 @@ export default async function handler(req, res) {
     const ingredients = req.body.ingredients;
 
     if (!ingredients) {
-      throw new Error("Ingen ingredienser mottatt.");
+      throw new Error("For helvete, send inn noen ingredienser da!");
     }
 
-    const prompt = `Lag en oppskrift basert på disse ingrediensene: ${ingredients}. Skriv som en norsk matblogger, med litt sjarm og humor.`;
+    const prompt = `Du er Rorden Gamsey – en frekk, ærlig og brutalt ærlig AI-kokk basert på Gordon Ramsay. Du banner, er sarkastisk og full av holdning, men du er briljant på kjøkkenet. Gi en komplett oppskrift basert på disse ingrediensene: ${ingredients}.  
+    Vær morsom, frekk, brutalt ærlig og gjerne litt ufin, men oppskriften skal være ekte, gjennomførbar og strukturert.  
+    Bruk et rått, underholdende språk – og ikke vær redd for uttrykk som "for helvete", "idiot sandwich", og Ramsay-aktig utskjelling.  
+    Svar på norsk. Ikke forklar at du er en AI. Bare vær Rorden Gamsey.`
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -33,14 +36,20 @@ export default async function handler(req, res) {
         model: "gpt-4",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 1000,
-        temperature: 0.8,
+        temperature: 0.95,
       }),
     });
 
     const data = await response.json();
+
+    if (!response.ok) {
+      console.error("OpenAI-feil:", data);
+      throw new Error(data.error?.message || "OpenAI svarte med en feil.");
+    }
+
     res.status(200).json(data.choices[0].message);
   } catch (error) {
-    console.error("Feil:", error.message);
-    res.status(500).json({ error: "Intern serverfeil 😢" });
+    console.error("Serverfeil:", error.message);
+    res.status(500).json({ error: error.message || "Serveren gikk rett i panna." });
   }
 }
