@@ -1,9 +1,3 @@
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};
-
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "https://www.ungkarskokken.com");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -15,16 +9,45 @@ export default async function handler(req, res) {
   }
 
   try {
-    const ingredients = req.body.ingredients;
+    const ingredients = (req.body?.ingredients || "").toString().trim();
+    const mode = (req.body?.mode || "normal").toString().trim(); // normal | cheap | friday
 
     if (!ingredients) {
-      throw new Error("For helvete, send inn noen ingredienser da!");
+      // Snill, men tydelig
+      throw new Error("Skriv inn et par ingredienser først 🙂 (f.eks. “egg, ost, skinke”).");
     }
 
-    const prompt = `Du er Rorden Gamsey – en frekk, ærlig og brutalt ærlig AI-kokk basert på Gordon Ramsay. Du banner, er sarkastisk og full av holdning, men du er briljant på kjøkkenet. Gi en komplett oppskrift basert på disse ingrediensene: ${ingredients}.  
-    Vær morsom, frekk, brutalt ærlig og gjerne litt ufin, men oppskriften skal være ekte, gjennomførbar og strukturert.  
-    Bruk et rått, underholdende språk – og ikke vær redd for uttrykk som "for helvete", "idiot sandwich", og Ramsay-aktig utskjelling.  
-    Svar på norsk. Ikke forklar at du er en AI. Bare vær Rorden Gamsey.`
+    const modeHint =
+      mode === "cheap"
+        ? "Modus: BILLIG. Prioriter rimelige råvarer og enkle grep. Unngå dyre forslag."
+        : mode === "friday"
+        ? "Modus: FREDAGSMODUS. Maks 15–20 minutter, få steg, lite oppvask, null fjas."
+        : "Modus: NORMAL. Raskt, gjennomførbart og godt.";
+
+    // Ungkarskokken-personlighet og faste rammer
+    const system = `
+Du er "Ungkarskokken" – en norsk, hjelpsom og litt frekk (på den hyggelige måten) kokkestemme.
+Du er jordnær, praktisk og morsom, men ALDRI ufin: ingen banning, ingen utskjelling, ingen nedsettende språk.
+Skriv for vanlige folk med dårlig tid. Ingredienser skal være lette å finne i Norge.
+Gi konkrete mengder, temperatur, tider og enkle steg. Ingen kokkeskole-snakk.
+Hvis brukerens ingrediensliste er rar, mangler ting eller virker umulig: foreslå 1–3 billige “handle-tillegg” og forklar hvorfor.
+Ikke forklar at du er en AI.
+`;
+
+    const user = `
+${modeHint}
+
+Ingredienser brukeren har:
+${ingredients}
+
+Lag en oppskrift på norsk i denne strukturen (bruk overskrifter nøyaktig slik):
+
+Tittel:
+Kort intro (1–3 setninger, litt humor):
+Du trenger:
+Slik gjør du:
+Tips og bytter:
+`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -33,10 +56,15 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
+        // Hvis du vil holde deg til det du har: behold "gpt-4".
+        // Men om du kan: bruk en nyere modell du har tilgang til i kontoen din.
         model: "gpt-4",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 1000,
-        temperature: 0.95,
+        messages: [
+          { role: "system", content: system.trim() },
+          { role: "user", content: user.trim() },
+        ],
+        max_tokens: 900,
+        temperature: 0.8,
       }),
     });
 
@@ -47,9 +75,11 @@ export default async function handler(req, res) {
       throw new Error(data.error?.message || "OpenAI svarte med en feil.");
     }
 
-    res.status(200).json(data.choices[0].message);
+    // Returner bare innholdet i samme format som før (data.choices[0].message.content)
+    res.status(200).json({ content: data.choices[0].message.content });
   } catch (error) {
     console.error("Serverfeil:", error.message);
-    res.status(500).json({ error: error.message || "Serveren gikk rett i panna." });
+    res.status(500).json({ error: error.message || "Serveren tok en liten timeout. Prøv igjen." });
   }
 }
+
