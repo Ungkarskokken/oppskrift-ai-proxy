@@ -63,7 +63,7 @@ Tips og bytter:
           { role: "system", content: system.trim() },
           { role: "user", content: user.trim() },
         ],
-        max_tokens: 900,
+        max_tokens: 1100,
         temperature: 0.8,
       }),
     });
